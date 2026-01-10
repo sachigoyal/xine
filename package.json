@@ -1,8 +1,17 @@
 {
   "name": "wallet-cli",
+  "version": "1.0.0",
+  "description": "CLI tool for generating and managing crypto wallets",
   "module": "index.ts",
   "type": "module",
-  "private": true,
+  "bin": {
+    "wallet-cli": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "build": "bun build src/index.ts --compile --outfile wallet-cli",
+    "link": "bun link"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },

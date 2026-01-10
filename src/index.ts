@@ -2,7 +2,24 @@
 
 import { intro, outro, select, isCancel, text } from "@clack/prompts";
 import clipboard from "clipboardy";
-import { generateWallet, addWallet } from "./generateWallet";
+import { generateWallet, addWallet, type Chain } from "./generateWallet";
+
+async function selectChain(): Promise<Chain> {
+  const chain = await select({
+    message: "Select chain:",
+    options: [
+      { value: "solana", label: "◎ Solana" },
+      { value: "ethereum", label: "⟠ Ethereum" },
+    ],
+  });
+
+  if (isCancel(chain)) {
+    outro("Goodbye 👋");
+    process.exit(0);
+  }
+
+  return chain as Chain;
+}
 
 export async function askWalletAction() {
   intro("🪙 Wallet CLI");
@@ -22,7 +39,8 @@ export async function askWalletAction() {
   }
 
   if (action === "generate") {
-    const wallet = generateWallet(0);
+    const chain = await selectChain();
+    const wallet = generateWallet(chain, 0)!;
     console.log(wallet.table);
 
     const copyAction = await select({
@@ -39,10 +57,31 @@ export async function askWalletAction() {
     }
 
     console.log(wallet.keypairTable);
+
+    let index = 1;
+    while (true) {
+      const more = await select({
+        message: "Generate another wallet from same seed?",
+        options: [
+          { value: "yes", label: "Yes, derive next wallet" },
+          { value: "no", label: "No, I'm done" },
+        ],
+      });
+
+      if (isCancel(more) || more === "no") break;
+
+      const derived = addWallet(chain, wallet.mnemonic, index)!;
+      console.log(`\nWallet ${index}:`);
+      console.log(derived.keypairTable);
+      index++;
+    }
+
     outro("Wallet generated! 🎉");
   }
 
   if (action === "add") {
+    const chain = await selectChain();
+
     const mnemonic = await text({
       message: "Enter your 12-word mnemonic phrase:",
       placeholder: "word1 word2 word3 ...",
@@ -58,7 +97,7 @@ export async function askWalletAction() {
     }
 
     for (let i = 0; i < 10; i++) {
-      const wallet = addWallet(mnemonic, i);
+      const wallet = addWallet(chain, mnemonic, i)!;
       console.log(`\nWallet ${i}:`);
       console.log(wallet.keypairTable);
     }

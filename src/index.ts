@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { intro, outro, select, isCancel, text } from "@clack/prompts";
+import clipboard from "clipboardy";
 import { generateWallet, addWallet } from "./generateWallet";
 
 export async function askWalletAction() {
@@ -23,6 +24,20 @@ export async function askWalletAction() {
   if (action === "generate") {
     const wallet = generateWallet(0);
     console.log(wallet.table);
+
+    const copyAction = await select({
+      message: "Action",
+      options: [
+        { value: "copy", label: "📋 Copy Mnemonic" },
+        { value: "continue", label: "Continue" },
+      ],
+    });
+
+    if (copyAction === "copy") {
+      await clipboard.write(wallet.mnemonic);
+      console.log("✓ Copied to clipboard!");
+    }
+
     console.log(wallet.keypairTable);
     outro("Wallet generated! 🎉");
   }

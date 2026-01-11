@@ -9,7 +9,7 @@ import { storage } from "./storage";
 const program = new Command();
 
 program
-  .name("wallet-cli")
+  .name("xine")
   .description("🪙 A CLI tool for generating and managing crypto wallets")
   .version("1.0.0");
 
@@ -189,7 +189,7 @@ program
 
     if (entries.length === 0) {
       console.log(
-        "No wallets stored yet. Use `wallet-cli generate` to create one."
+        "No wallets stored yet. Use `xine generate` to create one."
       );
       return;
     }
@@ -390,9 +390,9 @@ program
     }
 
     if (action === "list-secrets") {
-      await program.parseAsync(["node", "wallet-cli", "list", "--secrets"]);
+      await program.parseAsync(["node", "xine", "list", "--secrets"]);
     } else {
-      await program.parseAsync(["node", "wallet-cli", action as string]);
+      await program.parseAsync(["node", "xine", action as string]);
     }
   });
 

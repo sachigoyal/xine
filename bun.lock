@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "wallet-cli",
+      "name": "xine",
       "dependencies": {
         "@clack/prompts": "^0.11.0",
         "@solana/web3.js": "^1.98.4",

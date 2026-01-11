@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
 
-const CONFIG_DIR = join(homedir(), ".wallet-cli");
+const CONFIG_DIR = join(homedir(), ".xine");
 const WALLETS_FILE = join(CONFIG_DIR, "wallets.json");
 
 export type Chain = "solana" | "ethereum";

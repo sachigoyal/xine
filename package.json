@@ -1,6 +1,6 @@
 {
   "name": "xine",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "CLI tool for generating and managing crypto wallets",
   "module": "index.ts",
   "type": "module",
@@ -21,7 +21,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/sachigoyal/wallet-cli.git"
+    "url": "https://github.com/sachigoyal/xine.git"
   },
   "files": [
     "dist",

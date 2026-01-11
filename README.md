@@ -1,4 +1,4 @@
-# 🔐 wallet-cli
+# 🔐 xine
 
 Minimal CLI for generating & managing Solana/Ethereum wallets.
 
@@ -21,7 +21,7 @@ bun run src/index.ts
 
 ## Storage
 
-Wallets saved to `~/.wallet-cli/wallets.json`
+Wallets saved to `~/.xine/wallets.json`
 
 ---
 

@@ -1,11 +1,11 @@
 {
-  "name": "xor",
+  "name": "xine",
   "version": "1.0.0",
   "description": "CLI tool for generating and managing crypto wallets",
   "module": "index.ts",
   "type": "module",
   "bin": {
-    "xor": "./src/index.ts"
+    "xine": "./src/index.ts"
   },
   "scripts": {
     "start": "bun run src/index.ts",

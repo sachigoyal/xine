@@ -37,3 +37,10 @@ export function getStoragePath() {
   return WALLETS_FILE;
 }
 
+export function deleteWallet(index: number): boolean {
+  const wallets = loadWallets();
+  if (index < 0 || index >= wallets.length) return false;
+  wallets.splice(index, 1);
+  writeFileSync(WALLETS_FILE, JSON.stringify(wallets, null, 2));
+  return true;
+}

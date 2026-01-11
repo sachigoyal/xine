@@ -4,7 +4,7 @@ import { Command } from "commander";
 import { intro, outro, select, isCancel, text, confirm } from "@clack/prompts";
 import clipboard from "clipboardy";
 import { generateWallet, addWallet, type Chain } from "./generateWallet";
-import { saveWallet, loadWallets, getStoragePath } from "./storage";
+import { saveWallet, loadWallets, getStoragePath, deleteWallet } from "./storage";
 
 const program = new Command();
 
@@ -147,7 +147,9 @@ program
     const wallets = loadWallets();
 
     if (wallets.length === 0) {
-      console.log("No wallets stored yet. Use `wallet-cli generate` to create one.");
+      console.log(
+        "No wallets stored yet. Use `wallet-cli generate` to create one."
+      );
       return;
     }
 
@@ -157,6 +159,50 @@ program
       console.log(`   Public Key: ${w.publicKey}`);
       console.log(`   Created: ${new Date(w.createdAt).toLocaleString()}\n`);
     });
+  });
+
+program
+  .command("delete")
+  .alias("rm")
+  .description("Delete a stored wallet")
+  .action(async () => {
+    intro("🗑️ Delete Wallet");
+
+    const wallets = loadWallets();
+
+    if (wallets.length === 0) {
+      outro("No wallets to delete.");
+      return;
+    }
+
+    const walletIndex = await select({
+      message: "Select wallet to delete:",
+      options: wallets.map((w, i) => ({
+        value: i,
+        label: `${w.name} (${w.chain}) - ${w.publicKey.slice(0, 8)}...`,
+      })),
+    });
+
+    if (isCancel(walletIndex)) {
+      outro("Cancelled");
+      return;
+    }
+
+    const wallet = wallets[walletIndex as number]!;
+    const confirmed = await confirm({
+      message: `Are you sure you want to delete "${wallet.name}"? This cannot be undone.`,
+    });
+
+    if (isCancel(confirmed) || !confirmed) {
+      outro("Cancelled");
+      return;
+    }
+
+    if (deleteWallet(walletIndex as number)) {
+      outro(`✓ Deleted "${wallet.name}"`);
+    } else {
+      outro("Failed to delete wallet");
+    }
   });
 
 program
@@ -171,6 +217,7 @@ program
         { value: "generate", label: "Generate a new wallet" },
         { value: "import", label: "Import an existing wallet" },
         { value: "list", label: "List stored wallets" },
+        { value: "delete", label: "Delete a wallet" },
         { value: "exit", label: "Exit" },
       ],
     });

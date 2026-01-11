@@ -1,53 +1,28 @@
-# wallet-cli
+# 🔐 wallet-cli
 
-CLI for generating and managing Solana/Ethereum wallets.
+Minimal CLI for generating & managing Solana/Ethereum wallets.
 
-## Install
+## Quick Start
 
 ```bash
 bun install
-```
-
-## Usage
-
-```bash
-# Interactive mode
 bun run src/index.ts
-
-# Generate new wallet
-bun run src/index.ts generate -c solana
-
-# Import existing mnemonic
-bun run src/index.ts import
-
-# List stored wallets
-bun run src/index.ts list
-bun run src/index.ts list -s  # with secrets
-
-# Derive more wallets from stored mnemonic
-bun run src/index.ts derive
-
-# Delete wallet
-bun run src/index.ts delete
 ```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `generate -c <chain>` | Create new wallet (solana/ethereum) |
+| `import` | Import existing mnemonic |
+| `derive` | Derive additional wallets |
+| `list [-s]` | View wallets (`-s` shows secrets) |
+| `delete` | Remove a wallet |
 
 ## Storage
 
-Wallets stored at `~/.wallet-cli/wallets.json`
+Wallets saved to `~/.wallet-cli/wallets.json`
 
-```json
-{
-  "mnemonic phrase here": {
-    "name": "my-wallet",
-    "chain": "solana",
-    "createdAt": "...",
-    "wallets": [
-      { "index": 0, "publicKey": "...", "privateKey": "...", "path": "..." }
-    ]
-  }
-}
-```
+---
 
-## License
-
-MIT
+MIT License

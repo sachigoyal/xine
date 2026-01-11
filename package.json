@@ -9,8 +9,9 @@
   },
   "scripts": {
     "start": "bun run src/index.ts",
-    "build": "bun build src/index.ts --compile --outfile wallet-cli",
-    "link": "bun link"
+    "build": "bun build src/index.ts --outdir ./dist --target node --minify",
+    "link": "bun link",
+    "publish": "bun publish --access public"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -18,6 +19,22 @@
   "peerDependencies": {
     "typescript": "^5"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sachigoyal/wallet-cli.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "author": "Sachi Goyal",
+  "license": "MIT",
+  "keywords": [
+    "wallet",
+    "crypto",
+    "cli",
+    "solana",
+    "ethereum"
+  ],
   "dependencies": {
     "@clack/prompts": "^0.11.0",
     "@solana/web3.js": "^1.98.4",

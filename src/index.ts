@@ -143,7 +143,8 @@ program
   .command("list")
   .alias("ls")
   .description("List all stored wallets")
-  .action(() => {
+  .option("-s, --secrets", "Show mnemonics and private keys")
+  .action((opts) => {
     const wallets = loadWallets();
 
     if (wallets.length === 0) {
@@ -157,6 +158,10 @@ program
     wallets.forEach((w, i) => {
       console.log(`${i + 1}. ${w.name} (${w.chain})`);
       console.log(`   Public Key: ${w.publicKey}`);
+      if (opts.secrets) {
+        console.log(`   Private Key: ${w.privateKey}`);
+        console.log(`   Mnemonic: ${w.mnemonic}`);
+      }
       console.log(`   Created: ${new Date(w.createdAt).toLocaleString()}\n`);
     });
   });
@@ -217,6 +222,7 @@ program
         { value: "generate", label: "Generate a new wallet" },
         { value: "import", label: "Import an existing wallet" },
         { value: "list", label: "List stored wallets" },
+        { value: "list-secrets", label: "List stored wallets (with secrets)" },
         { value: "delete", label: "Delete a wallet" },
         { value: "exit", label: "Exit" },
       ],
@@ -227,7 +233,11 @@ program
       process.exit(0);
     }
 
-    await program.parseAsync(["node", "wallet-cli", action as string]);
+    if (action === "list-secrets") {
+      await program.parseAsync(["node", "wallet-cli", "list", "--secrets"]);
+    } else {
+      await program.parseAsync(["node", "wallet-cli", action as string]);
+    }
   });
 
 program.parse();

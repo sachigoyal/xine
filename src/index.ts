@@ -369,7 +369,7 @@ program
   .command("interactive", { isDefault: true })
   .description("Run in interactive mode")
   .action(async () => {
-    intro("🪙 Wallet CLI");
+    intro("🪙 Xine");
 
     const action = await select({
       message: "What would you like to do?",

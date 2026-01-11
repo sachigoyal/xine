@@ -1,11 +1,11 @@
 {
-  "name": "wallet-cli",
+  "name": "xor",
   "version": "1.0.0",
   "description": "CLI tool for generating and managing crypto wallets",
   "module": "index.ts",
   "type": "module",
   "bin": {
-    "wallet-cli": "./src/index.ts"
+    "xor": "./src/index.ts"
   },
   "scripts": {
     "start": "bun run src/index.ts",

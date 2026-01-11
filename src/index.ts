@@ -1,8 +1,17 @@
 #!/usr/bin/env node
 
-import { intro, outro, select, isCancel, text } from "@clack/prompts";
+import { Command } from "commander";
+import { intro, outro, select, isCancel, text, confirm } from "@clack/prompts";
 import clipboard from "clipboardy";
 import { generateWallet, addWallet, type Chain } from "./generateWallet";
+import { saveWallet, loadWallets, getStoragePath } from "./storage";
+
+const program = new Command();
+
+program
+  .name("wallet-cli")
+  .description("🪙 A CLI tool for generating and managing crypto wallets")
+  .version("1.0.0");
 
 async function selectChain(): Promise<Chain> {
   const chain = await select({
@@ -21,25 +30,16 @@ async function selectChain(): Promise<Chain> {
   return chain as Chain;
 }
 
-export async function askWalletAction() {
-  intro("🪙 Wallet CLI");
+program
+  .command("generate")
+  .alias("g")
+  .description("Generate a new wallet with a fresh mnemonic")
+  .option("-c, --chain <chain>", "Chain to use (solana or ethereum)")
+  .action(async (opts) => {
+    intro("🪙 Generate Wallet");
 
-  const action = await select({
-    message: "What would you like to do?",
-    options: [
-      { value: "generate", label: "Generate a new wallet" },
-      { value: "add", label: "Add an existing wallet" },
-      { value: "exit", label: "Exit" },
-    ],
-  });
+    const chain: Chain = opts.chain || (await selectChain());
 
-  if (isCancel(action) || action === "exit") {
-    outro("Goodbye 👋");
-    process.exit(0);
-  }
-
-  if (action === "generate") {
-    const chain = await selectChain();
     const wallet = generateWallet(chain, 0)!;
     console.log(wallet.table);
 
@@ -57,6 +57,30 @@ export async function askWalletAction() {
     }
 
     console.log(wallet.keypairTable);
+
+    const shouldStore = await confirm({
+      message: "Store this wallet locally?",
+    });
+
+    if (!isCancel(shouldStore) && shouldStore) {
+      const walletName = await text({
+        message: "Enter a name for this wallet:",
+        placeholder: "my-wallet",
+        defaultValue: `${chain}-wallet`,
+      });
+
+      if (!isCancel(walletName)) {
+        saveWallet({
+          name: walletName,
+          chain,
+          mnemonic: wallet.mnemonic,
+          publicKey: wallet.publicKey,
+          privateKey: wallet.privateKey,
+          createdAt: new Date().toISOString(),
+        });
+        console.log(`✓ Saved to ${getStoragePath()}`);
+      }
+    }
 
     let index = 1;
     while (true) {
@@ -77,10 +101,14 @@ export async function askWalletAction() {
     }
 
     outro("Wallet generated! 🎉");
-  }
+  });
 
-  if (action === "add") {
-    const chain = await selectChain();
+program
+  .command("import")
+  .alias("i")
+  .description("Import a wallet from an existing mnemonic")
+  .action(async () => {
+    intro("🪙 Import Wallet");
 
     const mnemonic = await text({
       message: "Enter your 12-word mnemonic phrase:",
@@ -96,14 +124,63 @@ export async function askWalletAction() {
       process.exit(0);
     }
 
-    for (let i = 0; i < 10; i++) {
-      const wallet = addWallet(chain, mnemonic, i)!;
-      console.log(`\nWallet ${i}:`);
-      console.log(wallet.keypairTable);
+    console.log("\n◎ Solana Wallets:\n");
+    for (let i = 0; i < 5; i++) {
+      const w = addWallet("solana", mnemonic, i)!;
+      console.log(`  ${i}: ${w.publicKey}`);
     }
-  }
 
-  return action; 
-}
+    console.log("\n⟠ Ethereum Wallets:\n");
+    for (let i = 0; i < 5; i++) {
+      const w = addWallet("ethereum", mnemonic, i)!;
+      console.log(`  ${i}: ${w.publicKey}`);
+    }
 
-askWalletAction();
+    outro("Import complete! 🎉");
+  });
+
+program
+  .command("list")
+  .alias("ls")
+  .description("List all stored wallets")
+  .action(() => {
+    const wallets = loadWallets();
+
+    if (wallets.length === 0) {
+      console.log("No wallets stored yet. Use `wallet-cli generate` to create one.");
+      return;
+    }
+
+    console.log("\n📂 Stored Wallets:\n");
+    wallets.forEach((w, i) => {
+      console.log(`${i + 1}. ${w.name} (${w.chain})`);
+      console.log(`   Public Key: ${w.publicKey}`);
+      console.log(`   Created: ${new Date(w.createdAt).toLocaleString()}\n`);
+    });
+  });
+
+program
+  .command("interactive", { isDefault: true })
+  .description("Run in interactive mode")
+  .action(async () => {
+    intro("🪙 Wallet CLI");
+
+    const action = await select({
+      message: "What would you like to do?",
+      options: [
+        { value: "generate", label: "Generate a new wallet" },
+        { value: "import", label: "Import an existing wallet" },
+        { value: "list", label: "List stored wallets" },
+        { value: "exit", label: "Exit" },
+      ],
+    });
+
+    if (isCancel(action) || action === "exit") {
+      outro("Goodbye 👋");
+      process.exit(0);
+    }
+
+    await program.parseAsync(["node", "wallet-cli", action as string]);
+  });
+
+program.parse();

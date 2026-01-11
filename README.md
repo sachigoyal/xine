@@ -1,15 +1,53 @@
 # wallet-cli
 
-To install dependencies:
+CLI for generating and managing Solana/Ethereum wallets.
+
+## Install
 
 ```bash
 bun install
 ```
 
-To run:
+## Usage
 
 ```bash
-bun run index.ts
+# Interactive mode
+bun run src/index.ts
+
+# Generate new wallet
+bun run src/index.ts generate -c solana
+
+# Import existing mnemonic
+bun run src/index.ts import
+
+# List stored wallets
+bun run src/index.ts list
+bun run src/index.ts list -s  # with secrets
+
+# Derive more wallets from stored mnemonic
+bun run src/index.ts derive
+
+# Delete wallet
+bun run src/index.ts delete
 ```
 
-This project was created using `bun init` in bun v1.3.1. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+## Storage
+
+Wallets stored at `~/.wallet-cli/wallets.json`
+
+```json
+{
+  "mnemonic phrase here": {
+    "name": "my-wallet",
+    "chain": "solana",
+    "createdAt": "...",
+    "wallets": [
+      { "index": 0, "publicKey": "...", "privateKey": "...", "path": "..." }
+    ]
+  }
+}
+```
+
+## License
+
+MIT

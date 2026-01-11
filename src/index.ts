@@ -4,7 +4,7 @@ import { Command } from "commander";
 import { intro, outro, select, isCancel, text, confirm } from "@clack/prompts";
 import clipboard from "clipboardy";
 import { generateWallet, addWallet, type Chain } from "./generateWallet";
-import { saveWallet, loadWallets, getStoragePath, deleteWallet } from "./storage";
+import { storage } from "./storage";
 
 const program = new Command();
 
@@ -70,15 +70,15 @@ program
       });
 
       if (!isCancel(walletName)) {
-        saveWallet({
-          name: walletName,
+        storage.addMnemonic(wallet.mnemonic, walletName, chain);
+        storage.addWallet(wallet.mnemonic, {
+          index: 0,
           chain,
-          mnemonic: wallet.mnemonic,
           publicKey: wallet.publicKey,
           privateKey: wallet.privateKey,
-          createdAt: new Date().toISOString(),
+          path: chain === "solana" ? "m/44'/501'/0'/0'" : "m/44'/60'/0'/0/0",
         });
-        console.log(`✓ Saved to ${getStoragePath()}`);
+        console.log(`✓ Saved to ${storage.getStoragePath()}`);
       }
     }
 
@@ -97,6 +97,18 @@ program
       const derived = addWallet(chain, wallet.mnemonic, index)!;
       console.log(`\nWallet ${index}:`);
       console.log(derived.keypairTable);
+
+      if (storage.getMnemonicEntry(wallet.mnemonic)) {
+        storage.addWallet(wallet.mnemonic, {
+          index,
+          chain,
+          publicKey: derived.publicKey,
+          privateKey: derived.privateKey,
+          path: derived.path,
+        });
+        console.log("✓ Added to stored wallets");
+      }
+
       index++;
     }
 
@@ -136,6 +148,34 @@ program
       console.log(`  ${i}: ${w.publicKey}`);
     }
 
+    const shouldStore = await confirm({
+      message: "Store this mnemonic?",
+    });
+
+    if (!isCancel(shouldStore) && shouldStore) {
+      const chain = await selectChain();
+      const walletName = await text({
+        message: "Enter a name:",
+        placeholder: "imported-wallet",
+        defaultValue: "imported-wallet",
+      });
+
+      if (!isCancel(walletName)) {
+        storage.addMnemonic(mnemonic, walletName, chain);
+        for (let i = 0; i < 5; i++) {
+          const w = addWallet(chain, mnemonic, i)!;
+          storage.addWallet(mnemonic, {
+            index: i,
+            chain,
+            publicKey: w.publicKey,
+            privateKey: w.privateKey,
+            path: w.path,
+          });
+        }
+        console.log(`✓ Saved to ${storage.getStoragePath()}`);
+      }
+    }
+
     outro("Import complete! 🎉");
   });
 
@@ -145,9 +185,9 @@ program
   .description("List all stored wallets")
   .option("-s, --secrets", "Show mnemonics and private keys")
   .action((opts) => {
-    const wallets = loadWallets();
+    const entries = storage.getAllEntries();
 
-    if (wallets.length === 0) {
+    if (entries.length === 0) {
       console.log(
         "No wallets stored yet. Use `wallet-cli generate` to create one."
       );
@@ -155,59 +195,174 @@ program
     }
 
     console.log("\n📂 Stored Wallets:\n");
-    wallets.forEach((w, i) => {
-      console.log(`${i + 1}. ${w.name} (${w.chain})`);
-      console.log(`   Public Key: ${w.publicKey}`);
+    entries.forEach(([mnemonic, entry], i) => {
+      console.log(`${i + 1}. ${entry.name} (${entry.chain})`);
       if (opts.secrets) {
-        console.log(`   Private Key: ${w.privateKey}`);
-        console.log(`   Mnemonic: ${w.mnemonic}`);
+        console.log(`   Mnemonic: ${mnemonic}`);
       }
-      console.log(`   Created: ${new Date(w.createdAt).toLocaleString()}\n`);
+      console.log(`   Created: ${new Date(entry.createdAt).toLocaleString()}`);
+      console.log(`   Derived wallets: ${entry.wallets.length}`);
+      
+      entry.wallets.forEach((w, j) => {
+        console.log(`     [${w.index}] ${w.publicKey}`);
+        if (opts.secrets) {
+          console.log(`         Private: ${w.privateKey}`);
+        }
+      });
+      console.log();
     });
   });
 
 program
   .command("delete")
   .alias("rm")
-  .description("Delete a stored wallet")
+  .description("Delete a stored wallet or mnemonic")
   .action(async () => {
     intro("🗑️ Delete Wallet");
 
-    const wallets = loadWallets();
+    const entries = storage.getAllEntries();
 
-    if (wallets.length === 0) {
+    if (entries.length === 0) {
       outro("No wallets to delete.");
       return;
     }
 
-    const walletIndex = await select({
-      message: "Select wallet to delete:",
-      options: wallets.map((w, i) => ({
-        value: i,
-        label: `${w.name} (${w.chain}) - ${w.publicKey.slice(0, 8)}...`,
+    const mnemonicChoice = await select({
+      message: "Select mnemonic to manage:",
+      options: entries.map(([mnemonic, entry], i) => ({
+        value: mnemonic,
+        label: `${entry.name} (${entry.chain}) - ${entry.wallets.length} wallets`,
       })),
     });
 
-    if (isCancel(walletIndex)) {
+    if (isCancel(mnemonicChoice)) {
       outro("Cancelled");
       return;
     }
 
-    const wallet = wallets[walletIndex as number]!;
-    const confirmed = await confirm({
-      message: `Are you sure you want to delete "${wallet.name}"? This cannot be undone.`,
+    const entry = storage.getMnemonicEntry(mnemonicChoice as string)!;
+    
+    const deleteAction = await select({
+      message: "What to delete?",
+      options: [
+        { value: "all", label: "Delete entire mnemonic and all wallets" },
+        { value: "wallet", label: "Delete a specific derived wallet" },
+        { value: "cancel", label: "Cancel" },
+      ],
     });
 
-    if (isCancel(confirmed) || !confirmed) {
+    if (isCancel(deleteAction) || deleteAction === "cancel") {
       outro("Cancelled");
       return;
     }
 
-    if (deleteWallet(walletIndex as number)) {
-      outro(`✓ Deleted "${wallet.name}"`);
+    if (deleteAction === "all") {
+      const confirmed = await confirm({
+        message: `Are you sure you want to delete "${entry.name}" and all ${entry.wallets.length} wallets? This cannot be undone.`,
+      });
+
+      if (isCancel(confirmed) || !confirmed) {
+        outro("Cancelled");
+        return;
+      }
+
+      if (storage.deleteMnemonic(mnemonicChoice as string)) {
+        outro(`✓ Deleted "${entry.name}"`);
+      } else {
+        outro("Failed to delete");
+      }
     } else {
-      outro("Failed to delete wallet");
+      if (entry.wallets.length === 0) {
+        outro("No derived wallets to delete");
+        return;
+      }
+
+      const walletChoice = await select({
+        message: "Select wallet to delete:",
+        options: entry.wallets.map((w) => ({
+          value: w.index,
+          label: `[${w.index}] ${w.publicKey.slice(0, 16)}...`,
+        })),
+      });
+
+      if (isCancel(walletChoice)) {
+        outro("Cancelled");
+        return;
+      }
+
+      if (storage.deleteWallet(mnemonicChoice as string, walletChoice as number)) {
+        outro(`✓ Deleted wallet ${walletChoice}`);
+      } else {
+        outro("Failed to delete wallet");
+      }
     }
+  });
+
+program
+  .command("derive")
+  .alias("d")
+  .description("Derive more wallets from a stored mnemonic")
+  .action(async () => {
+    intro("🔑 Derive Wallets");
+
+    const entries = storage.getAllEntries();
+
+    if (entries.length === 0) {
+      outro("No stored mnemonics. Generate or import one first.");
+      return;
+    }
+
+    const mnemonicChoice = await select({
+      message: "Select mnemonic:",
+      options: entries.map(([mnemonic, entry]) => ({
+        value: mnemonic,
+        label: `${entry.name} (${entry.chain}) - ${entry.wallets.length} wallets`,
+      })),
+    });
+
+    if (isCancel(mnemonicChoice)) {
+      outro("Cancelled");
+      return;
+    }
+
+    const mnemonic = mnemonicChoice as string;
+    const entry = storage.getMnemonicEntry(mnemonic)!;
+    const existingIndexes = new Set(entry.wallets.map(w => w.index));
+    
+    // Find next available index
+    let nextIndex = 0;
+    while (existingIndexes.has(nextIndex)) nextIndex++;
+
+    while (true) {
+      const derived = addWallet(entry.chain, mnemonic, nextIndex)!;
+      console.log(`\nWallet ${nextIndex}:`);
+      console.log(derived.keypairTable);
+
+      storage.addWallet(mnemonic, {
+        index: nextIndex,
+        chain: entry.chain,
+        publicKey: derived.publicKey,
+        privateKey: derived.privateKey,
+        path: derived.path,
+      });
+      console.log("✓ Saved");
+
+      existingIndexes.add(nextIndex);
+      nextIndex++;
+      while (existingIndexes.has(nextIndex)) nextIndex++;
+
+      const more = await select({
+        message: "Derive another?",
+        options: [
+          { value: "yes", label: "Yes" },
+          { value: "no", label: "No, done" },
+        ],
+      });
+
+      if (isCancel(more) || more === "no") break;
+    }
+
+    outro("Done! 🎉");
   });
 
 program
@@ -221,6 +376,7 @@ program
       options: [
         { value: "generate", label: "Generate a new wallet" },
         { value: "import", label: "Import an existing wallet" },
+        { value: "derive", label: "Derive more wallets from stored mnemonic" },
         { value: "list", label: "List stored wallets" },
         { value: "list-secrets", label: "List stored wallets (with secrets)" },
         { value: "delete", label: "Delete a wallet" },

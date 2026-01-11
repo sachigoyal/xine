@@ -4,8 +4,9 @@ import { Keypair } from "@solana/web3.js";
 import { generateTable, pubpritable } from "../table";
 import bs58 from "bs58";
 import { ethers } from "ethers";
+import type { Chain } from "../storage";
 
-export type Chain = "solana" | "ethereum";
+export type { Chain };
 
 export function generateWallet(chain: Chain, index: number) {
   const mnemonic = generateMnemonic();

@@ -1,6 +1,6 @@
 {
   "name": "xine",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "CLI tool for generating and managing crypto wallets",
   "module": "index.ts",
   "type": "module",
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "bun run src/index.ts",
-    "build": "bun build src/index.ts --outdir ./dist --target node --minify",
+    "build": "bun build src/index.ts --outdir ./dist --target node --minify --packages external",
     "link": "bun link",
     "publish": "bun run build && bun publish --access public"
   },

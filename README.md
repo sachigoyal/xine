@@ -2,6 +2,8 @@
 
 Minimal CLI for generating & managing Solana/Ethereum wallets.
 
+![xine](./image/image.png)
+
 ## Quick Start
 
 ```bash
